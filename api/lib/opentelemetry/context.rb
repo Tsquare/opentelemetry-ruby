@@ -8,9 +8,19 @@ require 'opentelemetry/context/key'
 require 'opentelemetry/context/propagation'
 
 module OpenTelemetry # rubocop:disable Style/Documentation
-  Fiber.attr_accessor :opentelemetry_context
+  # Fiber.attr_accessor :opentelemetry_context # REMOVE for Ruby 2.7
 
-  # Manages context on a per-fiber basis
+  # Helper methods for thread-local context storage
+  module ThreadContextStorage
+    def self.get
+      Thread.current[:opentelemetry_context]
+    end
+    def self.set(val)
+      Thread.current[:opentelemetry_context] = val
+    end
+  end
+
+  # Manages context on a per-thread basis (backport for Ruby 2.7)
   class Context
     EMPTY_ENTRIES = {}.freeze
     private_constant :EMPTY_ENTRIES
@@ -116,7 +126,7 @@ module OpenTelemetry # rubocop:disable Style/Documentation
 
       # Clears the fiber-local Context stack.
       def clear
-        Fiber.current.opentelemetry_context = []
+        ThreadContextStorage.set([])
       end
 
       def empty
@@ -126,7 +136,7 @@ module OpenTelemetry # rubocop:disable Style/Documentation
       private
 
       def stack
-        Fiber.current.opentelemetry_context ||= []
+        ThreadContextStorage.get || ThreadContextStorage.set([])
       end
     end
 
