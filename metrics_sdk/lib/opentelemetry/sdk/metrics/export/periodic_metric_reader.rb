@@ -72,7 +72,7 @@ module OpenTelemetry
           # @return [Integer] SUCCESS if no error occurred, FAILURE if a
           #   non-specific failure occurred.
           def force_flush(timeout: nil)
-            export(timeout:)
+            export(timeout: timeout)
             Export::SUCCESS
           rescue StandardError
             Export::FAILURE
