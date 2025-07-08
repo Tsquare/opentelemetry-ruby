@@ -6,6 +6,6 @@
 
 module OpenTelemetry
   module Common
-    VERSION = '0.22.0.backport'
+    VERSION = '0.22.0'
   end
 end

@@ -7,6 +7,6 @@
 module OpenTelemetry
   module SDK
     ## Current OpenTelemetry version
-    VERSION = '1.8.0.backport'
+    VERSION = '1.8.0'
   end
 end
