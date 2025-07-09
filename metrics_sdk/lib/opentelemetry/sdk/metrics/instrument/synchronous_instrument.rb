@@ -19,6 +19,7 @@ module OpenTelemetry
             @meter_provider = meter_provider
             @metric_streams = []
 
+            OpenTelemetry.logger.info("ZZZ SynchronousInstrument #{@name} initialized")
             meter_provider.register_synchronous_instrument(self)
           end
 
@@ -33,6 +34,7 @@ module OpenTelemetry
               @instrumentation_scope,
               aggregation
             )
+            OpenTelemetry.logger.info("ZZZ SynchronousInstrument #{@name} registered with metric store")
             @metric_streams << ms
             metric_store.add_metric_stream(ms)
           end
@@ -40,7 +42,9 @@ module OpenTelemetry
           private
 
           def update(value, attributes)
+            OpenTelemetry.logger.info("ZZZ SynchronousInstrument.update #{@name} updating #{@metric_streams.length} metric streams with value=#{value}")
             @metric_streams.each { |ms| ms.update(value, attributes) }
+            OpenTelemetry.logger.info("ZZZ SynchronousInstrument.update #{@name} all metric streams updated")
           end
         end
       end

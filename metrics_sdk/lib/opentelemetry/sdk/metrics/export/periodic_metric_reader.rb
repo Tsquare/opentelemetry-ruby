@@ -36,6 +36,7 @@ module OpenTelemetry
             @condition = ConditionVariable.new
             @export_mutex = Mutex.new
 
+            OpenTelemetry.logger.info("ZZZ PeriodicMetricReader initialized with interval=#{@export_interval}s, timeout=#{@export_timeout}s, exporter=#{@exporter.class.name}")
             start
           end
 
@@ -46,6 +47,7 @@ module OpenTelemetry
           # @return [Integer] SUCCESS if no error occurred, FAILURE if a
           #   non-specific failure occurred.
           def shutdown(timeout: nil)
+            OpenTelemetry.logger.info("ZZZ PeriodicMetricReader shutdown requested")
             thread = lock do
               @continue = false # force termination in next iteration
               @condition.signal
@@ -54,6 +56,7 @@ module OpenTelemetry
             thread&.join(@export_interval)
             @exporter.force_flush if @exporter.respond_to?(:force_flush)
             @exporter.shutdown
+            OpenTelemetry.logger.info("ZZZ PeriodicMetricReader shutdown completed successfully")
             Export::SUCCESS
           rescue StandardError => e
             OpenTelemetry.handle_error(exception: e, message: 'Fail to shutdown PeriodicMetricReader.')
@@ -72,7 +75,9 @@ module OpenTelemetry
           # @return [Integer] SUCCESS if no error occurred, FAILURE if a
           #   non-specific failure occurred.
           def force_flush(timeout: nil)
+            OpenTelemetry.logger.info("ZZZ PeriodicMetricReader force_flush requested")
             export(timeout: timeout)
+            OpenTelemetry.logger.info("ZZZ PeriodicMetricReader force_flush completed successfully")
             Export::SUCCESS
           rescue StandardError
             Export::FAILURE
@@ -82,6 +87,7 @@ module OpenTelemetry
             @exporter.reset if @exporter.respond_to?(:reset)
             collect # move past previously reported metrics from parent process
             @thread = nil
+            OpenTelemetry.logger.info("ZZZ PeriodicMetricReader restarted after fork")
             start
           end
 
@@ -103,13 +109,16 @@ module OpenTelemetry
             elsif @thread&.alive?
               OpenTelemetry.logger.warn 'PeriodicMetricReader is still running. Please shutdown it if it needs to restart.'
             else
+              OpenTelemetry.logger.info("ZZZ PeriodicMetricReader background thread starting")
               @thread = Thread.new do
                 while @continue
                   lock do
                     @condition.wait(@mutex, @export_interval)
+                    OpenTelemetry.logger.info("ZZZ PeriodicMetricReader periodic export triggered")
                     export(timeout: @export_timeout)
                   end
                 end
+                OpenTelemetry.logger.info("ZZZ PeriodicMetricReader background thread exiting")
               end
             end
           end
@@ -123,7 +132,14 @@ module OpenTelemetry
           def export(timeout: nil)
             @export_mutex.synchronize do
               collected_metrics = collect
-              @exporter.export(collected_metrics, timeout: timeout || @export_timeout) unless collected_metrics.empty?
+              OpenTelemetry.logger.info("ZZZ PeriodicMetricReader collected #{collected_metrics.length} metrics")
+              if collected_metrics.empty?
+                OpenTelemetry.logger.info("ZZZ PeriodicMetricReader no metrics to export, skipping")
+              else
+                OpenTelemetry.logger.info("ZZZ PeriodicMetricReader exporting #{collected_metrics.length} metrics to #{@exporter.class.name}")
+                result = @exporter.export(collected_metrics, timeout: timeout || @export_timeout)
+                OpenTelemetry.logger.info("ZZZ PeriodicMetricReader export completed with result: #{result}")
+              end
             end
           end
 

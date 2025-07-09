@@ -84,21 +84,27 @@ module OpenTelemetry
 
           # metrics Array[MetricData]
           def export(metrics, timeout: nil)
+            OpenTelemetry.logger.info("ZZZ MetricsExporter.export called with #{metrics.length} metrics")
             @mutex.synchronize do
-              send_bytes(encode(metrics), timeout: timeout)
+              result = send_bytes(encode(metrics), timeout: timeout)
+              OpenTelemetry.logger.info("ZZZ MetricsExporter.export completed with result: #{result}")
+              result
             end
           end
 
           def send_bytes(bytes, timeout:)
             return FAILURE if bytes.nil?
 
+            OpenTelemetry.logger.info("ZZZ MetricsExporter.send_bytes preparing HTTP request to #{@uri}")
             request = Net::HTTP::Post.new(@path)
 
             if @compression == 'gzip'
               request.add_field('Content-Encoding', 'gzip')
               body = Zlib.gzip(bytes)
+              OpenTelemetry.logger.info("ZZZ MetricsExporter.send_bytes using gzip compression, payload size: #{body.length} bytes")
             else
               body = bytes
+              OpenTelemetry.logger.info("ZZZ MetricsExporter.send_bytes no compression, payload size: #{body.length} bytes")
             end
 
             request.body = body
@@ -117,10 +123,12 @@ module OpenTelemetry
               @http.read_timeout = remaining_timeout
               @http.write_timeout = remaining_timeout
               @http.start unless @http.started?
+              OpenTelemetry.logger.info("ZZZ MetricsExporter.send_bytes sending HTTP request to #{@uri}")
               response = @http.request(request)
               case response
               when Net::HTTPOK
                 response.body # Read and discard body
+                OpenTelemetry.logger.info("ZZZ MetricsExporter.send_bytes HTTP request successful (200 OK)")
                 SUCCESS
               when Net::HTTPServiceUnavailable, Net::HTTPTooManyRequests
                 response.body # Read and discard body
@@ -184,7 +192,8 @@ module OpenTelemetry
           end
 
           def encode(metrics_data)
-            Opentelemetry::Proto::Collector::Metrics::V1::ExportMetricsServiceRequest.encode(
+            OpenTelemetry.logger.info("ZZZ MetricsExporter.encode encoding #{metrics_data.length} metrics to protobuf")
+            result = Opentelemetry::Proto::Collector::Metrics::V1::ExportMetricsServiceRequest.encode(
               Opentelemetry::Proto::Collector::Metrics::V1::ExportMetricsServiceRequest.new(
                 resource_metrics: metrics_data
                   .group_by(&:resource)
@@ -208,6 +217,8 @@ module OpenTelemetry
                   end
               )
             )
+            OpenTelemetry.logger.info("ZZZ MetricsExporter.encode protobuf encoding successful, size: #{result.length} bytes")
+            result
           rescue StandardError => e
             OpenTelemetry.handle_error(exception: e, message: 'unexpected error in OTLP::MetricsExporter#encode')
             nil

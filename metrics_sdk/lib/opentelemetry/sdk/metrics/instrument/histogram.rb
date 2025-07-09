@@ -25,7 +25,9 @@ module OpenTelemetry
           #   Array values must not contain nil elements and all elements must be of
           #   the same basic type (string, numeric, boolean).
           def record(amount, attributes: {})
+            OpenTelemetry.logger.info("ZZZ Histogram.record #{@name} recording value=#{amount}, attributes=#{attributes}")
             update(amount, attributes)
+            OpenTelemetry.logger.info("ZZZ Histogram.record #{@name} metric recorded successfully")
             nil
           rescue StandardError => e
             OpenTelemetry.handle_error(exception: e)

@@ -31,7 +31,9 @@ module OpenTelemetry
             if increment.negative?
               OpenTelemetry.logger.warn("#{@name} received a negative value")
             else
+              OpenTelemetry.logger.info("ZZZ Counter.add #{@name} recording value=#{increment}, attributes=#{attributes}")
               update(increment, attributes)
+              OpenTelemetry.logger.info("ZZZ Counter.add #{@name} metric recorded successfully")
             end
             nil
           rescue StandardError => e
