@@ -192,8 +192,9 @@ module OpenTelemetry
           end
 
           def encode(metrics_data)
-            OpenTelemetry.logger.info("ZZZ MetricsExporter.encode encoding #{metrics_data.length} metrics to protobuf")
-            OpenTelemetry.logger.info("ZZZ MetricsExporter.encode metrics_data: #{metrics_data.inspect}")
+            metrics_summary = metrics_data.map { |m| "#{m.name}:#{m.data_points.length}" }.join(", ")
+            OpenTelemetry.logger.info("ZZZ MetricsExporter.encode metrics summary: #{metrics_summary}")
+            
             result = Opentelemetry::Proto::Collector::Metrics::V1::ExportMetricsServiceRequest.encode(
               Opentelemetry::Proto::Collector::Metrics::V1::ExportMetricsServiceRequest.new(
                 resource_metrics: metrics_data
