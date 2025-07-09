@@ -37,7 +37,7 @@ module OpenTelemetry
           readers = @metric_readers.empty? ? wrapped_metric_exporters_from_env.compact : @metric_readers
           OpenTelemetry.logger.info("ZZZ ConfiguratorPatch.configure_metric_readers found #{readers.length} metric readers")
           readers.each do |r|
-            OpenTelemetry.logger.info("ZZZ ConfiguratorPatch.configure_metric_readers adding #{r.class.name} to MeterProvider")
+            OpenTelemetry.logger.info("ZZZ ConfiguratorPatch.configure_metric_readers adding MetricReader##{r.object_id} to MeterProvider")
             OpenTelemetry.meter_provider.add_metric_reader(r)
           end
         end
@@ -52,16 +52,16 @@ module OpenTelemetry
               nil
             when 'console'
               OpenTelemetry.logger.info("ZZZ ConfiguratorPatch.wrapped_metric_exporters_from_env creating console exporter")
-              OpenTelemetry.meter_provider.add_metric_reader(Metrics::Export::PeriodicMetricReader.new(exporter: Metrics::Export::ConsoleMetricPullExporter.new))
+              Metrics::Export::PeriodicMetricReader.new(exporter: Metrics::Export::ConsoleMetricPullExporter.new)
             when 'in-memory'
               OpenTelemetry.logger.info("ZZZ ConfiguratorPatch.wrapped_metric_exporters_from_env creating in-memory exporter")
-              OpenTelemetry.meter_provider.add_metric_reader(Metrics::Export::InMemoryMetricPullExporter.new)
+              Metrics::Export::InMemoryMetricPullExporter.new
             when 'otlp'
               OpenTelemetry.logger.info("ZZZ ConfiguratorPatch.wrapped_metric_exporters_from_env creating OTLP exporter")
               begin
                 reader = Metrics::Export::PeriodicMetricReader.new(exporter: OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter.new)
                 OpenTelemetry.logger.info("ZZZ ConfiguratorPatch.wrapped_metric_exporters_from_env OTLP exporter created successfully")
-                OpenTelemetry.meter_provider.add_metric_reader(reader)
+                reader
               rescue NameError
                 OpenTelemetry.logger.warn 'The otlp metrics exporter cannot be configured - please add opentelemetry-exporter-otlp-metrics to your Gemfile, metrics will not be exported'
                 nil
